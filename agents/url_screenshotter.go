@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"path/filepath"
 
 	"github.com/michenriksen/aquatone/core"
 )
@@ -125,11 +126,28 @@ func (a *URLScreenshotter) locateChrome() {
 
 func (a *URLScreenshotter) screenshotPage(page *core.Page) {
 	filePath := fmt.Sprintf("screenshots/%s.png", page.BaseFilename())
+
+	// Generate a unique temporary directory for each screenshot
+	tempDir := filepath.Join(a.tempUserDirPath, uuid.New().String())
+
+	// Ensure the temp directory is clean before use
+	if err := os.RemoveAll(tempDir); err != nil {
+		a.session.Out.Error("Failed to clean temp directory: %v\n", err)
+		a.session.Stats.IncrementScreenshotFailed()
+		return
+	}
+
+	if err := os.MkdirAll(tempDir, 0755); err != nil {
+		a.session.Out.Error("Failed to create temp directory: %v\n", err)
+		a.session.Stats.IncrementScreenshotFailed()
+		return
+	}
+
 	var chromeArguments = []string{
 		"--headless", "--disable-gpu", "--hide-scrollbars", "--mute-audio", "--disable-notifications",
 		"--no-first-run", "--disable-crash-reporter", "--ignore-certificate-errors", "--incognito",
 		"--disable-infobars", "--disable-sync", "--no-default-browser-check",
-		"--user-data-dir=" + a.tempUserDirPath,
+		"--user-data-dir=" + tempDir,  // Unique temp directory for this screenshot
 		"--user-agent=" + RandomUserAgent(),
 		"--window-size=" + *a.session.Options.Resolution,
 		"--screenshot=" + a.session.GetFilePath(filePath),
@@ -145,11 +163,11 @@ func (a *URLScreenshotter) screenshotPage(page *core.Page) {
 
 	chromeArguments = append(chromeArguments, page.URL)
 
+	// Create buffers to capture the stdout and stderr streams.
+	var stdoutBuf, stderrBuf bytes.Buffer
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*a.session.Options.ScreenshotTimeout)*time.Millisecond)
 	defer cancel()
 
-	// Create buffers to capture the stdout and stderr streams.
-	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd := exec.CommandContext(ctx, a.chromePath, chromeArguments...)
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
@@ -187,6 +205,11 @@ func (a *URLScreenshotter) screenshotPage(page *core.Page) {
 	page.ScreenshotPath = filePath
 	page.HasScreenshot = true
 	a.killChromeProcessIfRunning(cmd)
+
+	// Clean up the temporary directory after use
+	if err := os.RemoveAll(tempDir); err != nil {
+		a.session.Out.Error("Failed to clean up temp directory: %v\n", err)
+	}
 }
 
 func (a *URLScreenshotter) killChromeProcessIfRunning(cmd *exec.Cmd) {
