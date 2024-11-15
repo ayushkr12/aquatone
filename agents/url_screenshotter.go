@@ -148,11 +148,18 @@ func (a *URLScreenshotter) screenshotPage(page *core.Page) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*a.session.Options.ScreenshotTimeout)*time.Millisecond)
 	defer cancel()
 
+	// Create buffers to capture the stdout and stderr streams.
+	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd := exec.CommandContext(ctx, a.chromePath, chromeArguments...)
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+
 	if err := cmd.Start(); err != nil {
 		a.session.Out.Debug("[%s] Error: %v\n", a.ID(), err)
 		a.session.Stats.IncrementScreenshotFailed()
 		a.session.Out.Error("%s: screenshot failed: %s\n", page.URL, err)
+		a.session.Out.Error("Chrome stdout: %s\n", stdoutBuf.String())  // Log stdout
+		a.session.Out.Error("Chrome stderr: %s\n", stderrBuf.String())  // Log stderr
 		a.killChromeProcessIfRunning(cmd)
 		return
 	}
@@ -162,11 +169,15 @@ func (a *URLScreenshotter) screenshotPage(page *core.Page) {
 		a.session.Out.Debug("[%s] Error: %v\n", a.ID(), err)
 		if ctx.Err() == context.DeadlineExceeded {
 			a.session.Out.Error("%s: screenshot timed out\n", page.URL)
+			a.session.Out.Error("Chrome stdout: %s\n", stdoutBuf.String())  // Log stdout
+			a.session.Out.Error("Chrome stderr: %s\n", stderrBuf.String())  // Log stderr
 			a.killChromeProcessIfRunning(cmd)
 			return
 		}
 
 		a.session.Out.Error("%s: screenshot failed: %s\n", page.URL, err)
+		a.session.Out.Error("Chrome stdout: %s\n", stdoutBuf.String())  // Log stdout
+		a.session.Out.Error("Chrome stderr: %s\n", stderrBuf.String())  // Log stderr
 		a.killChromeProcessIfRunning(cmd)
 		return
 	}
