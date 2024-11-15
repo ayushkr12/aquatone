@@ -1,4 +1,4 @@
-module github.com/michenriksen/aquatone
+module github.com/ayusheek/aquatone
 
 go 1.23.3
 

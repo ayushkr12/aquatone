@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ayusheek/aquatone/core"
 	"github.com/google/uuid"
-	"github.com/michenriksen/aquatone/core"
 )
 
 type URLScreenshotter struct {
