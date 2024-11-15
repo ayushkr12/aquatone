@@ -1,17 +1,19 @@
 package agents
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	"path/filepath"
 
+	"github.com/google/uuid"
 	"github.com/michenriksen/aquatone/core"
 )
 
@@ -147,7 +149,7 @@ func (a *URLScreenshotter) screenshotPage(page *core.Page) {
 		"--headless", "--disable-gpu", "--hide-scrollbars", "--mute-audio", "--disable-notifications",
 		"--no-first-run", "--disable-crash-reporter", "--ignore-certificate-errors", "--incognito",
 		"--disable-infobars", "--disable-sync", "--no-default-browser-check",
-		"--user-data-dir=" + tempDir,  // Unique temp directory for this screenshot
+		"--user-data-dir=" + tempDir, // Unique temp directory for this screenshot
 		"--user-agent=" + RandomUserAgent(),
 		"--window-size=" + *a.session.Options.Resolution,
 		"--screenshot=" + a.session.GetFilePath(filePath),
@@ -176,8 +178,8 @@ func (a *URLScreenshotter) screenshotPage(page *core.Page) {
 		a.session.Out.Debug("[%s] Error: %v\n", a.ID(), err)
 		a.session.Stats.IncrementScreenshotFailed()
 		a.session.Out.Error("%s: screenshot failed: %s\n", page.URL, err)
-		a.session.Out.Error("Chrome stdout: %s\n", stdoutBuf.String())  // Log stdout
-		a.session.Out.Error("Chrome stderr: %s\n", stderrBuf.String())  // Log stderr
+		a.session.Out.Error("Chrome stdout: %s\n", stdoutBuf.String()) // Log stdout
+		a.session.Out.Error("Chrome stderr: %s\n", stderrBuf.String()) // Log stderr
 		a.killChromeProcessIfRunning(cmd)
 		return
 	}
@@ -187,15 +189,15 @@ func (a *URLScreenshotter) screenshotPage(page *core.Page) {
 		a.session.Out.Debug("[%s] Error: %v\n", a.ID(), err)
 		if ctx.Err() == context.DeadlineExceeded {
 			a.session.Out.Error("%s: screenshot timed out\n", page.URL)
-			a.session.Out.Error("Chrome stdout: %s\n", stdoutBuf.String())  // Log stdout
-			a.session.Out.Error("Chrome stderr: %s\n", stderrBuf.String())  // Log stderr
+			a.session.Out.Error("Chrome stdout: %s\n", stdoutBuf.String()) // Log stdout
+			a.session.Out.Error("Chrome stderr: %s\n", stderrBuf.String()) // Log stderr
 			a.killChromeProcessIfRunning(cmd)
 			return
 		}
 
 		a.session.Out.Error("%s: screenshot failed: %s\n", page.URL, err)
-		a.session.Out.Error("Chrome stdout: %s\n", stdoutBuf.String())  // Log stdout
-		a.session.Out.Error("Chrome stderr: %s\n", stderrBuf.String())  // Log stderr
+		a.session.Out.Error("Chrome stdout: %s\n", stdoutBuf.String()) // Log stdout
+		a.session.Out.Error("Chrome stderr: %s\n", stderrBuf.String()) // Log stderr
 		a.killChromeProcessIfRunning(cmd)
 		return
 	}
