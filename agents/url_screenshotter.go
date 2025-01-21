@@ -88,6 +88,7 @@ func (a *URLScreenshotter) locateChrome() {
 		"/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
 		"/Applications/Chromium.app/Contents/MacOS/Chromium",
 		"C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+		"C:/Program Files/Google/Chrome/Application/chrome.exe",
 	}
 
 	for _, path := range paths {
